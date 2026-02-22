@@ -171,4 +171,3 @@ dependencies:
       - typer==0.24.1
       - typer-slim==0.24.0
       - tzdata==2025.3
-prefix: /Users/Hector/anaconda3/envs/Audio_Enhancement_CNN
