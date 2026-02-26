@@ -1,7 +1,6 @@
 name: Audio_Enhancement_CNN
 channels:
   - defaults
-  - pytorch
   - conda-forge
 dependencies:
   - python=3.10
