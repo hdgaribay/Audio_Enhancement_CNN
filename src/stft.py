@@ -23,16 +23,14 @@ def compute_stft(waveform):
     waveform_tensor = torch.from_numpy(waveform.astype(np.float32))
     stft_result = torch.stft(
         waveform_tensor,
-        n_fft=512,
-        hop_length=256,
-        win_length=512,
-        window=torch.hann_window(512),
+        n_fft=510,
+        hop_length=100,
+        win_length=510,
+        window=torch.hann_window(510),
         return_complex=True
     )
     magnitude = torch.abs(stft_result)
     phase     = torch.angle(stft_result)
-    magnitude = magnitude[:-1, :]
-    phase     = phase[:-1, :]
     magnitude = magnitude.numpy()
     phase     = phase.numpy()
     return magnitude, phase
@@ -48,9 +46,9 @@ def compute_istft(magnitude, phase):
     complex_tensor = torch.from_numpy(complex_stft.astype(np.complex64))
     istft_result   = torch.istft(
         complex_tensor,
-        n_fft=512,
-        hop_length=256,
-        win_length=512,
-        window=torch.hann_window(512)
+        n_fft=510,
+        hop_length=100,
+        win_length=510,
+        window=torch.hann_window(510)
     )
     return istft_result.numpy()

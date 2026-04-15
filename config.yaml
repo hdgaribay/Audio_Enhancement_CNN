@@ -2,16 +2,41 @@
 sample_rate: 16000
 
 # STFT
-n_fft: 512
-hop_length: 256
-win_length: 512
+n_fft: 510
+hop_length: 100
+win_length: 510
 window: hann
 
-# Model Input
-frame_length: 16
-input_shape: [16, 256, 1]
+# Model
+model: cnn_denoiser
+dense_channels: 16
 
 # Training
-batch_size: 64
+batch_size: 16
 learning_rate: 0.0001
+lr_decay: 0.99
 epochs: 30
+optimizer: adam
+loss: mse
+
+# Data
+frame_length: 30700
+manifest: dataset_manifest.csv
+train_clean: data/voicebank_demand/train/clean
+train_noisy: data/voicebank_demand/train/noisy
+test_clean:  data/voicebank_demand/test/clean
+test_noisy:  data/voicebank_demand/test/noisy
+
+# Checkpointing
+checkpoint_dir: checkpoints/
+save_every: 1
+keep_last: 5
+
+# Logging
+log_interval: 100
+seed: 42
+num_workers: 2
+pin_memory: true
+
+# AWGN simulation
+awgn_snr_range: [-4, -2, 0, 2, 4, 6, 8, 10]
