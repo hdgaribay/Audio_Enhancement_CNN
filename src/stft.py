@@ -40,8 +40,6 @@ def compute_lps(magnitude):
     return lps
 
 def compute_istft(magnitude, phase):
-    magnitude = np.pad(magnitude, ((0, 1), (0, 0)))
-    phase     = np.pad(phase,     ((0, 1), (0, 0)))
     complex_stft   = magnitude * np.exp(1j * phase)
     complex_tensor = torch.from_numpy(complex_stft.astype(np.complex64))
     istft_result   = torch.istft(
