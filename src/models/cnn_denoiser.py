@@ -26,7 +26,7 @@ class CNNDenoiser(nn.Module):
         - BatchNorm      (stabilizes training)
         - ReLU           (adds non-linearity, except the last layer)
     """
-    def __init__(self):
+    def __init__(self): 
         super(CNNDenoiser,self).__init__()
         self.layer1 = nn.Sequential(
             nn.Conv2d(in_channels = 1, out_channels = 16, kernel_size = 5,padding = 2),
@@ -74,7 +74,7 @@ if __name__ == "__main__":
     model = CNNDenoiser()
     count_parameters(model)
 
-    x = torch.randn(2, 1, 256, 302)
+    x = torch.randn(2, 1, 256, 308)
     y = model(x)
     print(y.shape)
 
