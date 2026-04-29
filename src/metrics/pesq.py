@@ -14,7 +14,6 @@ Usage:
     from src.metrics.pesq import compute_pesq
     score = compute_pesq(clean_wav, enhanced_wav)
 """
-import numpy as np
 from pesq import pesq
 
 def compute_pesq(clean_wav, enhanced_wav):

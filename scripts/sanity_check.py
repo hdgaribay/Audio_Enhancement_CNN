@@ -8,7 +8,6 @@ install dataset using extract_dataset.py
 """
 
 import pandas as pd
-import random
 import matplotlib.pyplot as plt
 import soundfile as sf
 import numpy as np

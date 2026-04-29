@@ -17,36 +17,40 @@ Requirements:
 
 import numpy as np
 import torch
-import torchaudio
+
+_WIN_SIZE = 510
+_HOP      = 100
+# Created once at import time; reused on every call to avoid per-call allocation.
+_WINDOW   = torch.hann_window(_WIN_SIZE)
+
 
 def compute_stft(waveform):
     waveform_tensor = torch.from_numpy(waveform.astype(np.float32))
     stft_result = torch.stft(
         waveform_tensor,
-        n_fft=510,
-        hop_length=100,
-        win_length=510,
-        window=torch.hann_window(510),
+        n_fft=_WIN_SIZE,
+        hop_length=_HOP,
+        win_length=_WIN_SIZE,
+        window=_WINDOW,
         return_complex=True
     )
-    magnitude = torch.abs(stft_result)
-    phase     = torch.angle(stft_result)
-    magnitude = magnitude.numpy()
-    phase     = phase.numpy()
+    magnitude = torch.abs(stft_result).numpy()
+    phase     = torch.angle(stft_result).numpy()
     return magnitude, phase
 
+
 def compute_lps(magnitude):
-    lps = np.log(magnitude ** 2 + 1e-8)
-    return lps
+    return np.log(magnitude ** 2 + 1e-8)
+
 
 def compute_istft(magnitude, phase):
     complex_stft   = magnitude * np.exp(1j * phase)
     complex_tensor = torch.from_numpy(complex_stft.astype(np.complex64))
     istft_result   = torch.istft(
         complex_tensor,
-        n_fft=510,
-        hop_length=100,
-        win_length=510,
-        window=torch.hann_window(510)
+        n_fft=_WIN_SIZE,
+        hop_length=_HOP,
+        win_length=_WIN_SIZE,
+        window=_WINDOW
     )
     return istft_result.numpy()

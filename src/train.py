@@ -5,13 +5,17 @@ Trains the CNNDenoiser model on VoiceBank-DEMAND dataset.
 
 What it does:
     1. Loads config from config.yaml
-    2. Builds dataset and DataLoader
+    2. Builds train and val datasets/loaders (90/10 split of manifest train rows)
     3. Builds model and moves to GPU if available
-    4. Trains for N epochs, saving a checkpoint after each epoch
-    5. Prints loss after each epoch
+    4. Trains for N epochs with:
+       - MSELoss on log power spectrograms (LPS→LPS, same domain)
+       - Gradient clipping (max_norm=1.0)
+       - ReduceLROnPlateau scheduler stepping on val loss
+    5. Prints train/val loss and current LR after each epoch
+    6. Saves checkpoint after each epoch
 
 Usage:
-    python src/train.py --config config.yaml
+    python scripts/train_cnn.py --config config.yaml
 
 Outputs:
     checkpoints/epoch_01.pt
@@ -20,6 +24,7 @@ Outputs:
 """
 
 import os
+import glob
 import torch
 import torch.nn as nn
 from torch.utils.data import DataLoader
@@ -28,12 +33,17 @@ from tqdm import tqdm
 from src.dataset import SpeechDataset
 from src.models.cnn_denoiser import CNNDenoiser, count_parameters
 
+
 def train(config):
     torch.manual_seed(config["seed"])
+    torch.cuda.manual_seed_all(config["seed"])
     device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
     print(f"Using device: {device}")
     os.makedirs(config["checkpoint_dir"], exist_ok=True)
+
     train_set = SpeechDataset(config["manifest"], split="train")
+    val_set   = SpeechDataset(config["manifest"], split="val")
+
     train_loader = DataLoader(
         train_set,
         batch_size=config["batch_size"],
@@ -41,32 +51,81 @@ def train(config):
         num_workers=config["num_workers"],
         pin_memory=config["pin_memory"]
     )
-    model = CNNDenoiser().to(device)
+    val_loader = DataLoader(
+        val_set,
+        batch_size=config["batch_size"],
+        shuffle=False,
+        num_workers=config["num_workers"],
+        pin_memory=config["pin_memory"]
+    )
+
+    model     = CNNDenoiser().to(device)
     optimizer = torch.optim.Adam(model.parameters(), lr=config["learning_rate"])
+    scheduler = torch.optim.lr_scheduler.ReduceLROnPlateau(
+        optimizer,
+        mode="min",
+        factor=0.5,
+        patience=config.get("lr_patience", 3),
+    )
     criterion = nn.MSELoss()
+
     count_parameters(model)
+
     for epoch in range(1, config["epochs"] + 1):
-        total_loss = 0.0                    
+        # ── train ──────────────────────────────────────────────────────────
         model.train()
-        for noisy_lps, noisy_phase, clean_mag in tqdm(train_loader, desc=f"Epoch {epoch}"):
+        train_loss = 0.0
+        for noisy_lps, _, clean_lps in tqdm(train_loader, desc=f"Epoch {epoch} [train]"):
             noisy_lps = noisy_lps.unsqueeze(1).to(device)
-            clean_mag = clean_mag.unsqueeze(1).to(device)
+            clean_lps = clean_lps.unsqueeze(1).to(device)
+
             optimizer.zero_grad()
             prediction = model(noisy_lps)
-            loss = criterion(prediction, clean_mag)
+            loss = criterion(prediction, clean_lps)
             loss.backward()
+            torch.nn.utils.clip_grad_norm_(model.parameters(), max_norm=1.0)
             optimizer.step()
-            total_loss += loss.item()
-        avg_loss = total_loss / len(train_loader)
-        print(f"Epoch {epoch}/{config['epochs']}  loss: {avg_loss:.4f}")
+            train_loss += loss.item()
+
+        train_loss /= len(train_loader)
+
+        # ── validate ────────────────────────────────────────────────────────
+        model.eval()
+        val_loss = 0.0
+        with torch.no_grad():
+            for noisy_lps, _, clean_lps in tqdm(val_loader, desc=f"Epoch {epoch} [val]"):
+                noisy_lps = noisy_lps.unsqueeze(1).to(device)
+                clean_lps = clean_lps.unsqueeze(1).to(device)
+                prediction = model(noisy_lps)
+                val_loss += criterion(prediction, clean_lps).item()
+        val_loss /= len(val_loader)
+
+        scheduler.step(val_loss)
+        current_lr = optimizer.param_groups[0]["lr"]
+
+        print(
+            f"Epoch {epoch}/{config['epochs']}  "
+            f"train_loss: {train_loss:.4f}  "
+            f"val_loss: {val_loss:.4f}  "
+            f"lr: {current_lr:.2e}"
+        )
+
         checkpoint_path = os.path.join(config["checkpoint_dir"], f"epoch_{epoch:02d}.pt")
         torch.save({
             "epoch":           epoch,
             "model_state":     model.state_dict(),
             "optimizer_state": optimizer.state_dict(),
-            "loss":            avg_loss
+            "train_loss":      train_loss,
+            "val_loss":        val_loss,
         }, checkpoint_path)
         print(f"Checkpoint saved: {checkpoint_path}")
+
+        keep_last = config.get("keep_last", 5)
+        all_ckpts = sorted(glob.glob(os.path.join(config["checkpoint_dir"], "epoch_*.pt")))
+        for old in all_ckpts[:-keep_last]:
+            os.remove(old)
+
+
 if __name__ == "__main__":
     with open("config.yaml", "r") as f:
         config = yaml.safe_load(f)

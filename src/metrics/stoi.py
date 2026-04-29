@@ -14,7 +14,6 @@ Usage:
     from src.metrics.stoi import compute_stoi
     score = compute_stoi(clean_wav, enhanced_wav)
 """
-import numpy as np
 from pystoi import stoi
 
 def compute_stoi(clean_wav, enhanced_wav):
