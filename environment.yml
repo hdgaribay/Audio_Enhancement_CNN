@@ -1,27 +1,28 @@
 name: Audio_Enhancement_CNN
 channels:
-  - defaults
+  - pytorch
+  - nvidia
   - conda-forge
+  - defaults
 dependencies:
-  - python=3.10
+  - python=3.11
+  - pytorch=2.3
+  - torchaudio=2.3
+  - pytorch-cuda=12.1
   - pip
   - jupyter
   - jupyterlab
   - numpy
-  - pandas
   - matplotlib
-  - scikit-learn
   - scipy
   - pyyaml
   - pip:
       - librosa
-      - pesq
-      - pystoi
       - soundfile
       - soxr
-      - torch
-      - torchaudio
+      - pesq
+      - pystoi
       - tqdm
       - tensorboard
-      - huggingface-hub
-      - pyarrow
+      - einops
+      - requests
