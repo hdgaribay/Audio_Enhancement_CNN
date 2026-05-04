@@ -71,6 +71,9 @@ def train(config):
 
     count_parameters(model)
 
+    best_val_loss = float("inf")
+    best_ckpt_path = os.path.join(config["checkpoint_dir"], "best.pt")
+
     for epoch in range(1, config["epochs"] + 1):
         # ── train ──────────────────────────────────────────────────────────
         model.train()
@@ -111,15 +114,22 @@ def train(config):
         )
 
         checkpoint_path = os.path.join(config["checkpoint_dir"], f"epoch_{epoch:02d}.pt")
-        torch.save({
+        ckpt = {
             "epoch":           epoch,
             "model_state":     model.state_dict(),
             "optimizer_state": optimizer.state_dict(),
             "train_loss":      train_loss,
             "val_loss":        val_loss,
-        }, checkpoint_path)
+        }
+        torch.save(ckpt, checkpoint_path)
         print(f"Checkpoint saved: {checkpoint_path}")
 
+        if val_loss < best_val_loss:
+            best_val_loss = val_loss
+            torch.save(ckpt, best_ckpt_path)
+            print(f"New best val_loss: {best_val_loss:.4f} → saved {best_ckpt_path}")
+
+        # Rotate per-epoch checkpoints; best.pt is named separately so it is never deleted.
         keep_last = config.get("keep_last", 5)
         all_ckpts = sorted(glob.glob(os.path.join(config["checkpoint_dir"], "epoch_*.pt")))
         for old in all_ckpts[:-keep_last]:

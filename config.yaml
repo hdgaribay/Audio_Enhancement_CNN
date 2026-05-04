@@ -15,7 +15,7 @@ dense_channels: 16
 batch_size: 16
 learning_rate: 0.0001
 lr_patience: 3
-epochs: 30
+epochs: 15
 optimizer: adam
 loss: mse
 

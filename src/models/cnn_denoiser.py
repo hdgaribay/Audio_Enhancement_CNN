@@ -1,16 +1,17 @@
 """
 cnn_denoiser.py
 
-U-Net-shaped fully-convolutional 2D CNN for speech enhancement.
+Fully-convolutional 2D CNN for speech enhancement (LPS → LPS regression).
+There is no spatial down/upsampling — every layer keeps the (256, 308) shape;
+"skip connections" are residual additions that re-inject earlier feature maps.
 
 Input:  noisy log power spectrogram  (batch, 1, 256, 308)
 Output: predicted clean log power spectrogram  (batch, 1, 256, 308)
 
 Architecture:
-    Encoder: 1→16→32→64 channels
-    Decoder: 64→32→16→1 channels
-    Skip connections from each encoder layer to its symmetric decoder layer
-    preserve fine-grained spectral detail that the bottleneck would otherwise discard.
+    Stack:    1 → 16 → 32 → 64 → 32 → 16 → 1   (5x5 convs, BN, ReLU)
+    Residual: layer4 output + layer2 output
+              layer5 output + layer1 output
 
 At inference, convert output to magnitude via: mag = exp(lps / 2)
 
