@@ -75,7 +75,7 @@ def train(config):
         # ── train ──────────────────────────────────────────────────────────
         model.train()
         train_loss = 0.0
-        for noisy_lps, _, clean_lps in tqdm(train_loader, desc=f"Epoch {epoch} [train]"):
+        for noisy_lps, _, clean_lps, _lps_mean, _lps_std in tqdm(train_loader, desc=f"Epoch {epoch} [train]"):
             noisy_lps = noisy_lps.unsqueeze(1).to(device)
             clean_lps = clean_lps.unsqueeze(1).to(device)
 
@@ -93,7 +93,7 @@ def train(config):
         model.eval()
         val_loss = 0.0
         with torch.no_grad():
-            for noisy_lps, _, clean_lps in tqdm(val_loader, desc=f"Epoch {epoch} [val]"):
+            for noisy_lps, _, clean_lps, _lps_mean, _lps_std in tqdm(val_loader, desc=f"Epoch {epoch} [val]"):
                 noisy_lps = noisy_lps.unsqueeze(1).to(device)
                 clean_lps = clean_lps.unsqueeze(1).to(device)
                 prediction = model(noisy_lps)

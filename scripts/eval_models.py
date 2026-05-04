@@ -48,15 +48,18 @@ def evaluate(config, checkpoint_path):
     stoi_cnn_scores   = []
 
     with torch.no_grad():
-        for noisy_lps, noisy_phase, clean_lps in tqdm(test_loader, desc="Evaluating"):
+        for noisy_lps, noisy_phase, clean_lps, lps_mean, lps_std in tqdm(test_loader, desc="Evaluating"):
             noisy_input = noisy_lps.unsqueeze(1).to(device)
             pred_lps    = model(noisy_input)
 
-            # back to numpy — remove batch and channel dims
-            pred_lps_np   = pred_lps.squeeze(0).squeeze(0).cpu().numpy()
-            noisy_lps_np  = noisy_lps.squeeze(0).numpy()
+            mean = lps_mean.item()
+            std  = lps_std.item()
+
+            # back to numpy — remove batch and channel dims, then denormalize
+            pred_lps_np    = pred_lps.squeeze(0).squeeze(0).cpu().numpy() * std + mean
+            noisy_lps_np   = noisy_lps.squeeze(0).numpy() * std + mean
             noisy_phase_np = noisy_phase.squeeze(0).numpy()
-            clean_lps_np  = clean_lps.squeeze(0).numpy()
+            clean_lps_np   = clean_lps.squeeze(0).numpy() * std + mean
 
             # convert LPS → linear magnitude for ISTFT
             enhanced_mag = lps_to_mag(pred_lps_np)

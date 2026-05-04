@@ -32,6 +32,7 @@ def compute_stft(waveform):
         hop_length=_HOP,
         win_length=_WIN_SIZE,
         window=_WINDOW,
+        center=True,
         return_complex=True
     )
     magnitude = torch.abs(stft_result).numpy()

@@ -11,9 +11,11 @@ What it does:
     4. Computes STFT → returns noisy_lps, noisy_phase, clean_lps as tensors
 
 Returns per sample:
-    noisy_lps   : (256, 308) — log power spectrogram of noisy audio  (model input)
-    noisy_phase : (256, 308) — phase of noisy audio                  (used in ISTFT at inference)
-    clean_lps   : (256, 308) — log power spectrogram of clean audio  (training target)
+    noisy_lps   : (256, 308) — normalized log power spectrogram of noisy audio  (model input)
+    noisy_phase : (256, 308) — phase of noisy audio                              (used in ISTFT at inference)
+    clean_lps   : (256, 308) — normalized log power spectrogram of clean audio  (training target)
+    lps_mean    : scalar     — mean used for normalization  (needed to denormalize at inference)
+    lps_std     : scalar     — std  used for normalization  (needed to denormalize at inference)
 
 Splits:
     "train" — 90% of manifest train rows, random crop
@@ -27,10 +29,12 @@ Usage:
     train_set = SpeechDataset("dataset_manifest.csv", split="train")
     loader = DataLoader(train_set, batch_size=16, shuffle=True, num_workers=2)
 
-    for noisy_lps, noisy_phase, clean_lps in loader:
-        # noisy_lps   : (B, 256, 308)
+    for noisy_lps, noisy_phase, clean_lps, lps_mean, lps_std in loader:
+        # noisy_lps   : (B, 256, 308)  normalized
         # noisy_phase : (B, 256, 308)
-        # clean_lps   : (B, 256, 308)
+        # clean_lps   : (B, 256, 308)  normalized (same stats as noisy)
+        # lps_mean    : (B,)
+        # lps_std     : (B,)
         pass
 
 Requirements:
@@ -96,7 +100,18 @@ class SpeechDataset(Dataset):
         noisy_phase = torch.from_numpy(noisy_phase.astype(np.float32))
         clean_lps   = torch.from_numpy(clean_lps.astype(np.float32))
 
-        return noisy_lps, noisy_phase, clean_lps
+        lps_mean = float(noisy_lps.mean())
+        lps_std  = max(float(noisy_lps.std()), 1e-6)
+        noisy_lps = (noisy_lps - lps_mean) / lps_std
+        clean_lps = (clean_lps - lps_mean) / lps_std
+
+        return (
+            noisy_lps,
+            noisy_phase,
+            clean_lps,
+            torch.tensor(lps_mean),
+            torch.tensor(lps_std),
+        )
 
     def _fix_length(self, wav: np.ndarray, start: int = 0) -> np.ndarray:
         length = len(wav)
@@ -112,7 +127,9 @@ if __name__ == "__main__":
     dataset = SpeechDataset("dataset_manifest.csv", split="train")
     print(f"Dataset length: {len(dataset)}")
 
-    noisy_lps, noisy_phase, clean_lps = dataset[0]
+    noisy_lps, noisy_phase, clean_lps, lps_mean, lps_std = dataset[0]
     print(f"noisy_lps shape   : {noisy_lps.shape}")
     print(f"noisy_phase shape : {noisy_phase.shape}")
     print(f"clean_lps shape   : {clean_lps.shape}")
+    print(f"lps_mean          : {lps_mean:.4f}")
+    print(f"lps_std           : {lps_std:.4f}")
