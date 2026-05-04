@@ -67,7 +67,7 @@ def train(config):
         factor=0.5,
         patience=config.get("lr_patience", 3),
     )
-    criterion = nn.MSELoss()
+    criterion = nn.L1Loss()
 
     count_parameters(model)
 
