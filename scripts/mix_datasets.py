@@ -25,6 +25,7 @@ from pathlib import Path
 from tqdm import tqdm
 import random
 import yaml
+import os
 
 # ── Load config ───────────────────────────────────────────────────────────────
 with open("config.yaml", "r") as f:
@@ -36,7 +37,14 @@ SNR_MAX    = config["mix_snr_max"]        # 20
 
 LIBRISPEECH_DIR = Path("data/librispeech/LibriSpeech/train-clean-100")
 DEMAND_DIR      = Path("data/demand")
-OUTPUT_DIR      = Path("data/mixed")
+# if running in Colab, save directly to Drive so data persists
+# otherwise save locally as normal
+if os.path.exists("/content/drive/MyDrive"):
+    OUTPUT_DIR = Path("/content/drive/MyDrive/Audio_Enhancement_CNN/data/mixed")
+    print("Colab detected — saving to Google Drive")
+else:
+    OUTPUT_DIR = Path("data/mixed")
+    print("Running locally — saving to data/mixed")
 
 # 90% train, 10% test split
 TRAIN_RATIO = 0.9
