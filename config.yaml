@@ -28,6 +28,10 @@ train_noisy: data/voicebank_demand/train/noisy
 test_clean:  data/voicebank_demand/test/clean
 test_noisy:  data/voicebank_demand/test/noisy
 
+# Speech/noise mixing
+mix_snr_min: 0
+mix_snr_max: 20
+
 # Checkpointing
 checkpoint_dir: checkpoints/
 save_every: 1
@@ -40,8 +44,8 @@ num_workers: 2
 pin_memory: true
 
 # AWGN noise injection
-awgn_snr_min: 0    # changed from discrete list to continuous range
-awgn_snr_max: 20
+awgn_snr_min: -4    # changed from discrete list to continuous range
+awgn_snr_max: 10
 
 # IQ imbalance noise injection
 iq_imbalance:
