@@ -32,11 +32,12 @@ import torch.nn as nn
 from torch.utils.data import DataLoader
 import yaml
 from tqdm import tqdm
-from src.datasets.iq_dataset import IQDataset
-from src.models.iq_denoiser import IQDenoiser, count_parameters
 
 import sys
 sys.path.insert(0, os.path.abspath(os.path.join(os.path.dirname(__file__), "..")))
+
+from src.datasets.iq_dataset import IQDataset
+from src.models.iq_denoiser import IQDenoiser, count_parameters
 
 
 def train_iq(config):
