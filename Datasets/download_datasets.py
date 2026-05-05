@@ -55,7 +55,7 @@ BASE_URL = "https://zenodo.org/records/1227121/files"
 for filename in DEMAND_FILES:
     print(f"\nDownloading {filename}...")
     url = f"{BASE_URL}/{filename}?download=1"
-    response = requests.get(url, stream=True)
+    response = requests.get(url, stream=True, headers={"User-Agent": "Mozilla/5.0"})
     total_size = int(response.headers.get("content-length", 0))
 
     data = b""
