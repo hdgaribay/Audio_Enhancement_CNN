@@ -34,31 +34,40 @@ print("LibriSpeech download complete.\n")
 
 
 # ── DEMAND ────────────────────────────────────────────────────────────────────
-print("Downloading DEMAND noise dataset...")
+# ── DEMAND ────────────────────────────────────────────────────────────────────
+print("Downloading DEMAND noise dataset (16k versions)...")
 
-DEMAND_URL = "https://zenodo.org/records/1227121/files/DEMAND.zip"
 DEMAND_DIR = Path("data/demand")
 DEMAND_DIR.mkdir(parents=True, exist_ok=True)
 
-# stream=True means we download in chunks instead of loading
-# the whole file into memory at once — important for large files
-response = requests.get(DEMAND_URL, stream=True)
-total_size = int(response.headers.get("content-length", 0))
-chunk_size = 1024 * 1024  # 1MB chunks
+# each environment is a separate zip file — we only need 16k to match our sample rate
+DEMAND_FILES = [
+    "DKITCHEN_16k.zip", "DLIVING_16k.zip",  "DWASHING_16k.zip",
+    "NFIELD_16k.zip",   "NPARK_16k.zip",    "NRIVER_16k.zip",
+    "OHALLWAY_16k.zip", "OMEETING_16k.zip", "OOFFICE_16k.zip",
+    "PCAFETER_16k.zip", "PRESTO_16k.zip",   "PSTATION_16k.zip",
+    "SPSQUARE_16k.zip", "STRAFFIC_16k.zip", "TBUS_16k.zip",
+    "TCAR_16k.zip",     "TMETRO_16k.zip",
+]
 
-print(f"File size: {total_size / 1e9:.1f} GB")
+BASE_URL = "https://zenodo.org/records/1227121/files"
 
-# download with a progress bar
-data = b""
-with tqdm(total=total_size, unit="B", unit_scale=True, desc="DEMAND") as bar:
-    for chunk in response.iter_content(chunk_size=chunk_size):
-        data += chunk
-        bar.update(len(chunk))
+for filename in DEMAND_FILES:
+    print(f"\nDownloading {filename}...")
+    url = f"{BASE_URL}/{filename}?download=1"
+    response = requests.get(url, stream=True)
+    total_size = int(response.headers.get("content-length", 0))
 
-print("Extracting DEMAND zip...")
-with zipfile.ZipFile(io.BytesIO(data)) as z:
-    z.extractall(DEMAND_DIR)
+    data = b""
+    with tqdm(total=total_size, unit="B", unit_scale=True, desc=filename) as bar:
+        for chunk in response.iter_content(chunk_size=1024 * 1024):
+            data += chunk
+            bar.update(len(chunk))
 
-print("DEMAND download complete.\n")
+    print(f"Extracting {filename}...")
+    with zipfile.ZipFile(io.BytesIO(data)) as z:
+        z.extractall(DEMAND_DIR)
+
+print("\nDEMAND download complete.")
 print("Both datasets ready.")
 print("Next step: run scripts/mix_dataset.py to create clean/noisy pairs.")

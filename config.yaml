@@ -40,8 +40,8 @@ num_workers: 2
 pin_memory: true
 
 # AWGN noise injection
-awgn_snr_min: -4    # changed from discrete list to continuous range
-awgn_snr_max: 10
+awgn_snr_min: 0    # changed from discrete list to continuous range
+awgn_snr_max: 20
 
 # IQ imbalance noise injection
 iq_imbalance:
