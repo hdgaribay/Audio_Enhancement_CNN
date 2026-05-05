@@ -2,14 +2,15 @@
 sample_rate: 16000
 
 # STFT
-n_fft: 510
+n_fft: 512          # changed from 510 — must be power of 2
 hop_length: 100
-win_length: 510
+win_length: 512     # changed from 510 — must match n_fft
 window: hann
 
 # Model
 model: cnn_denoiser
 dense_channels: 16
+# TODO: add muse section when we implement stage 2
 
 # Training
 batch_size: 16
@@ -38,5 +39,11 @@ seed: 42
 num_workers: 2
 pin_memory: true
 
-# AWGN simulation
-awgn_snr_range: [-4, -2, 0, 2, 4, 6, 8, 10]
+# AWGN noise injection
+awgn_snr_min: -4    # changed from discrete list to continuous range
+awgn_snr_max: 10
+
+# IQ imbalance noise injection
+iq_imbalance:
+  amplitude_range: [0.95, 1.05]   # ±5% gain mismatch between I and Q
+  phase_range: [-5, 5]            # ±5 degrees of phase error

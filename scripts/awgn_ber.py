@@ -82,8 +82,7 @@ def run_simulation(config, checkpoint_path):
     model.eval()
     print(f"Loaded checkpoint: {checkpoint_path}")
 
-    snr_range    = config["awgn_snr_range"]
-    ber_noisy    = np.zeros(len(snr_range))
+    snr_range = list(range(config["awgn_snr_min"], config["awgn_snr_max"] + 1))    ber_noisy    = np.zeros(len(snr_range))
     ber_enhanced = np.zeros(len(snr_range))
     ber_theory   = np.zeros(len(snr_range))
     n_files      = 0
