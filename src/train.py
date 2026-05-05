@@ -134,9 +134,3 @@ def train(config):
         all_ckpts = sorted(glob.glob(os.path.join(config["checkpoint_dir"], "epoch_*.pt")))
         for old in all_ckpts[:-keep_last]:
             os.remove(old)
-
-
-if __name__ == "__main__":
-    with open("config.yaml", "r") as f:
-        config = yaml.safe_load(f)
-    train(config)
