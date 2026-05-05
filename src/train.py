@@ -30,7 +30,8 @@ import torch.nn as nn
 from torch.utils.data import DataLoader
 import yaml
 from tqdm import tqdm
-from src.dataset import SpeechDataset
+from src.datasets.speech_dataset import SpeechDataset
+
 from src.models.cnn_denoiser import CNNDenoiser, count_parameters
 
 
