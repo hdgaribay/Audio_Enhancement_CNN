@@ -91,7 +91,7 @@ def get_all_speech_files():
 
 def get_all_noise_files():
     """Collect all channel wav files from DEMAND, grouped by environment."""
-    noise_files = list(DEMAND_DIR.rglob("ch*.wav"))
+    noise_files = list(Path("data/demand/wav").rglob("*.wav"))
     return noise_files
 
 
