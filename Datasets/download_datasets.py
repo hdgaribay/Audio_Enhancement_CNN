@@ -36,7 +36,8 @@ print("LibriSpeech download complete.\n")
 # ── DEMAND ────────────────────────────────────────────────────────────────────
 print("Downloading DEMAND noise dataset...")
 
-DEMAND_URL = "https://zenodo.org/records/1227121/files/DEMAND.zip"DEMAND_DIR = Path("data/demand")
+DEMAND_URL = "https://zenodo.org/records/1227121/files/DEMAND.zip"
+DEMAND_DIR = Path("data/demand")
 DEMAND_DIR.mkdir(parents=True, exist_ok=True)
 
 # stream=True means we download in chunks instead of loading
