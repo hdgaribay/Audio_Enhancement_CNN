@@ -5,19 +5,19 @@ PyTorch Dataset for training the Stage 1 IQ denoiser.
 
 What it does:
     1. Reads clean wav files from dataset_manifest.csv
-    2. Loads each wav file as a numpy array
-    3. Modulates the clean audio to IQ signals
+    2. Crops audio BEFORE modulating for speed
+       (modulating 500 samples is 32x faster than modulating 16000)
+    3. Modulates the cropped audio to IQ signals
     4. Applies AWGN and IQ imbalance noise
-    5. Crops both clean and noisy IQ to a fixed length
+    5. Crops/pads IQ to exactly IQ_FRAME_LENGTH
     6. Returns (noisy_iq, clean_iq, n_bits) as tensors
 
-Why we crop:
-    A single audio clip of 16000 samples becomes 512000 IQ samples
-    after modulation (32x longer). Processing 512000 samples at once
-    during training would be extremely slow and memory intensive.
-    Instead we crop to IQ_FRAME_LENGTH (16000 IQ samples) which
-    represents ~500 audio samples worth of data — enough context
-    for the model to learn noise patterns without being too slow.
+Why we crop audio before modulating:
+    Modulation makes signals 32x longer (8 samples per symbol x 4 bits
+    per audio sample). Modulating a full 16000 sample clip produces
+    512000 IQ samples, most of which get thrown away during cropping.
+    Instead we crop to 500 audio samples first, then modulate to get
+    exactly 16000 IQ samples — 32x less work per sample.
 
 Returns per sample:
     noisy_iq  : (2, IQ_FRAME_LENGTH) — noisy I and Q channels (model input)
@@ -55,20 +55,27 @@ from src.audio_io import load_audio
 from src.iq.modulate import modulate
 from src.iq.noise import apply_noise
 
-# how many IQ samples to use per training example
-# 16000 IQ samples = ~500 audio samples worth of data
-# this is 32x shorter than the full IQ signal (512000)
-# which makes training much faster without losing too much context
-IQ_FRAME_LENGTH = 16000
+# how many IQ samples per training example
+# 16000 IQ samples = 500 audio samples (16000 / 32)
+# 32 = 8 samples per symbol x 4 bits per audio sample
+IQ_FRAME_LENGTH    = 16000
+AUDIO_FRAME_LENGTH = IQ_FRAME_LENGTH // 32   # 500 audio samples
 
 
 class IQDataset(Dataset):
     def __init__(self, manifest_path: str, config: dict, split: str):
+        """
+        Args:
+            manifest_path : path to dataset_manifest.csv
+            config        : dict loaded from config.yaml
+            split         : "train", "val", or "test"
+        """
         assert split in ("train", "val", "test"), \
             f"split must be 'train', 'val', or 'test', got '{split}'"
 
         self.config = config
 
+        # load manifest and split into train/val/test
         df = pd.read_csv(manifest_path)
 
         if split in ("train", "val"):
@@ -92,25 +99,30 @@ class IQDataset(Dataset):
     def __getitem__(self, idx):
         row = self.data.iloc[idx]
 
-        # load clean audio only — we generate noisy version ourselves
+        # step 1 — load clean audio
         clean_wav, _ = load_audio(row["clean_path"])
 
-        # modulate to IQ
+        # step 2 — crop audio BEFORE modulating
+        # much faster: modulate 500 samples instead of 16000
+        # random crop for train, fixed crop for val/test
+        if self.is_train and len(clean_wav) > AUDIO_FRAME_LENGTH:
+            start     = np.random.randint(0, len(clean_wav) - AUDIO_FRAME_LENGTH)
+            clean_wav = clean_wav[start:start + AUDIO_FRAME_LENGTH]
+        else:
+            clean_wav = clean_wav[:AUDIO_FRAME_LENGTH]
+
+        # step 3 — modulate short clip to IQ
+        # 500 audio samples → 16000 IQ samples
         i_clean, q_clean, n_bits = modulate(clean_wav)
 
-        # stack into (2, signal_length)
+        # step 4 — stack I and Q into (2, signal_length)
         clean_iq = np.stack([i_clean, q_clean], axis=0)
 
-        # crop to IQ_FRAME_LENGTH
-        length = clean_iq.shape[1]
-        if self.is_train and length > IQ_FRAME_LENGTH:
-            start = np.random.randint(0, length - IQ_FRAME_LENGTH)
-        else:
-            start = 0
+        # step 5 — crop or pad to exactly IQ_FRAME_LENGTH
+        clean_iq = self._crop_or_pad(clean_iq)
 
-        clean_iq = self._crop_or_pad(clean_iq, start)
-
-        # apply noise after cropping to avoid wasting computation
+        # step 6 — apply noise to get noisy version
+        # apply AFTER cropping to avoid wasting computation
         i_noisy, q_noisy = apply_noise(
             clean_iq[0],
             clean_iq[1],
@@ -118,27 +130,35 @@ class IQDataset(Dataset):
         )
         noisy_iq = np.stack([i_noisy, q_noisy], axis=0)
 
-        # convert to tensors
+        # step 7 — convert to tensors
         noisy_iq_tensor = torch.from_numpy(noisy_iq.astype(np.float32))
         clean_iq_tensor = torch.from_numpy(clean_iq.astype(np.float32))
 
         return noisy_iq_tensor, clean_iq_tensor, n_bits
 
-    def _crop_or_pad(self, iq: np.ndarray, start: int = 0) -> np.ndarray:
+    def _crop_or_pad(self, iq: np.ndarray) -> np.ndarray:
         """
         Crop or pad IQ signal to exactly IQ_FRAME_LENGTH samples.
+
+        Args:
+            iq : numpy array of shape (2, signal_length)
+
         If signal is shorter than IQ_FRAME_LENGTH, pad with zeros.
-        If signal is longer, crop from start position.
+        If signal is longer, crop from the start.
         """
         length = iq.shape[1]
 
         if length == IQ_FRAME_LENGTH:
+            # already correct length
             return iq
         elif length < IQ_FRAME_LENGTH:
+            # pad with zeros on the right
+            # ((0,0), (0, pad)) means: don't pad channels, pad signal length
             pad_amount = IQ_FRAME_LENGTH - length
             return np.pad(iq, ((0, 0), (0, pad_amount)))
         else:
-            return iq[:, start:start + IQ_FRAME_LENGTH]
+            # crop from start
+            return iq[:, :IQ_FRAME_LENGTH]
 
 
 if __name__ == "__main__":
@@ -152,7 +172,7 @@ if __name__ == "__main__":
         config = yaml.safe_load(f)
 
     dataset = IQDataset("dataset_manifest.csv", config, split="train")
-    print(f"Dataset length: {len(dataset)}")
+    print(f"Dataset length : {len(dataset)}")
 
     noisy_iq, clean_iq, n_bits = dataset[0]
     print(f"noisy_iq shape : {noisy_iq.shape}")
