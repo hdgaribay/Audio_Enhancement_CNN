@@ -16,7 +16,7 @@ import pandas as pd
 from pathlib import Path
 
 # ── Config ───────────────────────────────────────────────────────────────────
-DATA_ROOT  = Path("data/voicebank_demand")
+DATA_ROOT  = Path("data/mixed")
 OUTPUT_CSV = Path("dataset_manifest.csv")
 
 # ── Scan Folders ──────────────────────────────────────────────────────────────
