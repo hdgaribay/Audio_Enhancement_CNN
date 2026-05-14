@@ -2,20 +2,20 @@
 scripts/plot_spectrogram_examples.py
 
 Generate paper-ready noisy, clean, and enhanced spectrogram examples from a
-trained CNNDenoiser checkpoint. By default this uses the epoch 15 checkpoint
-and saves both PDF and PNG figures for easy Overleaf embedding.
+trained CNNDenoiser checkpoint. By default this uses the best validation
+checkpoint and saves both PDF and PNG figures for easy Overleaf embedding.
 
 Usage:
     python scripts/plot_spectrogram_examples.py
 
     python scripts/plot_spectrogram_examples.py \
         --config config.yaml \
-        --checkpoint checkpoints/epoch_15.pt \
+        --checkpoint checkpoints/best.pt \
         --num-samples 3
 
 Outputs:
-    outputs/figures/spectrogram_examples/spectrogram_examples_epoch_15.pdf
-    outputs/figures/spectrogram_examples/spectrogram_examples_epoch_15.png
+    outputs/figures/spectrogram_examples/spectrogram_examples_best.pdf
+    outputs/figures/spectrogram_examples/spectrogram_examples_best.png
 """
 
 import argparse
@@ -46,7 +46,7 @@ def lps_to_db(lps):
     return 10.0 * lps / np.log(10.0)
 
 
-def checkpoint_epoch_label(checkpoint_path):
+def checkpoint_label(checkpoint_path):
     match = re.search(r"epoch[_-]?(\d+)", Path(checkpoint_path).stem)
     if match:
         return f"epoch_{match.group(1)}"
@@ -194,7 +194,7 @@ def main():
         description="Plot noisy, clean, and enhanced spectrogram examples."
     )
     parser.add_argument("--config", type=str, default="config.yaml")
-    parser.add_argument("--checkpoint", type=str, default="checkpoints/epoch_15.pt")
+    parser.add_argument("--checkpoint", type=str, default="checkpoints/best.pt")
     parser.add_argument("--split", type=str, default="test", choices=["train", "val", "test"])
     parser.add_argument("--num-samples", type=int, default=3)
     parser.add_argument("--indices", type=int, nargs="+", default=None)
@@ -224,7 +224,7 @@ def main():
     if args.output_stem:
         output_stem = output_dir / args.output_stem
     else:
-        output_stem = output_dir / f"spectrogram_examples_{checkpoint_epoch_label(args.checkpoint)}"
+        output_stem = output_dir / f"spectrogram_examples_{checkpoint_label(args.checkpoint)}"
 
     pdf_path, png_path = plot_examples(
         examples=examples,
