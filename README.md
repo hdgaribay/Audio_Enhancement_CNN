@@ -1,6 +1,6 @@
 # Audio_Enhancement_CNN
 This is a read-me for the audio-enhancement-cnn project for Dr. Ozer Introduction to Neural Nets Class,
-Fall 2026. 
+Spring 2026. 
 
 This project is a convolutional nerual network that removes background noise from speech recordings. 
 The model is trained on the VoiceBank-DEMAND and learns to map noisy speech back to clean speech by
