@@ -7,7 +7,7 @@ The model is trained on the VoiceBank-DEMAND and learns to map noisy speech back
 working in the frequency domain. 
 
 Requriements
-Pythong 3.11
+Python 3.11
 PyTorch 2.3 + torchaudio 2.3
 CUDA 12.1
 see environment.yml for full dependency list
