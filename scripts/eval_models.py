@@ -37,7 +37,8 @@ from src.stft import compute_istft, compute_stft, compute_lps
 from src.iq.modulate import modulate
 from src.iq.noise import apply_noise
 from src.iq.demodulate import demodulate
-from src.metrics.pesq_and_stoi import compute_pesq, compute_stoi
+from src.metrics.pesq import compute_pesq
+from src.metrics.stoi import compute_stoi
 
 
 def lps_to_mag(lps):

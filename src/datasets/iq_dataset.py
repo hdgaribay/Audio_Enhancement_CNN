@@ -80,6 +80,7 @@ class IQDataset(Dataset):
 
         if split in ("train", "val"):
             train_df = df[df["split"] == "train"].reset_index(drop=True)
+            train_df = train_df.sample(frac=1.0, random_state=42).reset_index(drop=True)
             val_n    = max(1, int(len(train_df) * 0.1))
             if split == "val":
                 self.data     = train_df.iloc[:val_n].reset_index(drop=True)
