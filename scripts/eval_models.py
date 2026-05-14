@@ -5,7 +5,7 @@ Evaluates trained CNNDenoiser on the test set.
 Prints PESQ and STOI scores for noisy input and CNN output.
 
 Usage:
-    python scripts/eval_models.py --config config.yaml --checkpoint checkpoints/epoch_30.pt
+    python scripts/eval_models.py --config config.yaml --checkpoint checkpoints/epoch_15.pt
 """
 import os, sys
 sys.path.insert(0, os.path.abspath(os.path.join(os.path.dirname(__file__), "..")))
