@@ -19,16 +19,13 @@ Usage:
 import numpy as np
 from src.stft import compute_stft, compute_istft
 def spectral_subtraction(noisy_wav, n_noise_frames=10):
-    # compute STFT
-    mag, phase = compute_stft(noisy_wav)          # (256, T)
+    #compute STFT
+    mag,phase = compute_stft(noisy_wav)
+    # noise estimate
+    noise_estimate = np.mean(mag[:,:n_noise_frames],axis = 1, keepdims = True)
 
-    # estimate noise from first N frames
-    noise_estimate = np.mean(mag[:, :n_noise_frames], axis=1, keepdims=True)
+    clean_mag = mag-noise_estimate
+    clean_mag = np.maximum(clean_mag,0.0)
 
-    # subtract noise and clip negatives to 0
-    enhanced_mag = mag - noise_estimate
-    enhanced_mag = np.maximum(enhanced_mag, 0.0)
-
-    # reconstruct waveform
-    enhanced_wav = compute_istft(enhanced_mag, phase)
-    return enhanced_wav
+    clean_waveform = compute_istft(clean_mag,phase)
+    return clean_waveform

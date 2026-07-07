@@ -46,81 +46,81 @@ import numpy as np
 import torch
 from torch.utils.data import Dataset
 from src.audio_io import load_audio
-from src.stft import compute_stft, compute_lps
+from src.stft import compute_lps, compute_stft
 
 FRAME_LENGTH = 30700
 
 
 class SpeechDataset(Dataset):
-    def __init__(self, manifest_path: str, split: str):
-        assert split in ("train", "val", "test"), \
-            f"split must be 'train', 'val', or 'test', got '{split}'"
-        df = pd.read_csv(manifest_path)
-
-        if split in ("train", "val"):
-            train_df = df[df["split"] == "train"].reset_index(drop=True)
-            val_n = max(1, int(len(train_df) * 0.1))
+    def __init__(self,manifest_path: str, split: str):
+        assert split in ("train","val","test"), f"split must be train,val, or test. got {split}" # check if split belongs to train,test or val
+        df = pd.read_csv(manifest_path) 
+        if split in ("train","val"):
+            train_df = df[df["split"] == "train"]
+            val_n = max(1,int(len(train_df)*0.1)) # val is first 10 percent of train df
             if split == "val":
-                self.data = train_df.iloc[:val_n].reset_index(drop=True)
+                self.data = train_df.iloc[:val_n]
                 self.is_train = False
             else:
-                self.data = train_df.iloc[val_n:].reset_index(drop=True)
+                self.data = train_df.iloc[val_n:].reset_index(drop = True)
                 self.is_train = True
-        else:
-            self.data = df[df["split"] == "test"].reset_index(drop=True)
+        if split == "test":
+            test_df = df[df["split"] == "test"]
+            self.data = test_df.reset_index(drop = True)
             self.is_train = False
-
-        print(f"[SpeechDataset] {split}: {len(self.data)} pairs loaded")
 
     def __len__(self):
         return len(self.data)
 
     def __getitem__(self, idx):
         row = self.data.iloc[idx]
-        clean_wav, _ = load_audio(row["clean_path"])
-        noisy_wav, _ = load_audio(row["noisy_path"])
+        clean_wav,_ = load_audio(row["clean_path"]) # Extract clean wav data
+        noisy_wav,_ = load_audio(row["noisy_path"]) # Extract noisy wav data
 
         # One shared crop start so clean and noisy are temporally aligned.
-        length = min(len(clean_wav), len(noisy_wav))
+        length = min(len(clean_wav),len(noisy_wav))
         if self.is_train and length > FRAME_LENGTH:
-            start = np.random.randint(0, length - FRAME_LENGTH)
+            start = np.random.randint(0,length-FRAME_LENGTH)
         else:
             start = 0
-
-        clean_wav = self._fix_length(clean_wav, start)
-        noisy_wav = self._fix_length(noisy_wav, start)
-
+        # fix length
+        clean_wav = self._fix_length(clean_wav,start)
+        noisy_wav = self._fix_length(noisy_wav,start)
+        # compute stft
         noisy_mag, noisy_phase = compute_stft(noisy_wav)
-        clean_mag, _           = compute_stft(clean_wav)
-
+        clean_mag, _ = compute_stft(clean_wav)
+        # compute lps
         noisy_lps = compute_lps(noisy_mag)
         clean_lps = compute_lps(clean_mag)
-
-        noisy_lps   = torch.from_numpy(noisy_lps.astype(np.float32))
+        # convert lps to tensors
+        noisy_lps = torch.from_numpy(noisy_lps.astype(np.float32))
         noisy_phase = torch.from_numpy(noisy_phase.astype(np.float32))
-        clean_lps   = torch.from_numpy(clean_lps.astype(np.float32))
-
-        lps_mean = float(noisy_lps.mean())
-        lps_std  = max(float(noisy_lps.std()), 1e-6)
-        noisy_lps = (noisy_lps - lps_mean) / lps_std
-        clean_lps = (clean_lps - lps_mean) / lps_std
-
-        return (
+        clean_lps = torch.from_numpy(clean_lps.astype(np.float32))
+        # normalize
+        lps_mean = noisy_lps.mean()      # tensor method — works on tensors
+        lps_std  = noisy_lps.std()
+        noisy_lps = (noisy_lps-lps_mean)/lps_std
+        clean_lps = (clean_lps-lps_mean)/lps_std
+        # Return
+        return(
             noisy_lps,
             noisy_phase,
             clean_lps,
-            torch.tensor(lps_mean),
-            torch.tensor(lps_std),
+            lps_mean,
+            lps_std
         )
-
-    def _fix_length(self, wav: np.ndarray, start: int = 0) -> np.ndarray:
+    
+    def _fix_length(self, wav:np.ndarray, start: int = 0) -> np.ndarray:
         length = len(wav)
         if length == FRAME_LENGTH:
             return wav
         elif length < FRAME_LENGTH:
-            return np.pad(wav, (0, FRAME_LENGTH - length))
+            return np.pad(wav,(0,FRAME_LENGTH-length))
         else:
-            return wav[start:start + FRAME_LENGTH]
+            return wav[start:start+FRAME_LENGTH]
+            
+            
+        
 
 
 if __name__ == "__main__":

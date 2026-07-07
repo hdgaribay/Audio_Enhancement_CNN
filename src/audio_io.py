@@ -16,19 +16,21 @@ import soundfile as sf
 import numpy as np
 from pathlib import Path
 
-
 def load_audio(path):
     if not Path(path).exists():
-        raise FileNotFoundError(f"Audio file not found: {path}")
+        raise FileNotFoundError(f"file not found: {path}")
     data, samplerate = sf.read(path)
     if samplerate != 16000:
-        raise ValueError(f"Expected sample rate 16000, got {samplerate}")
+        raise ValueError(f"sample rate must be 16000Hz, got {samplerate}")
     if data.ndim == 2:
-        data = data.mean(axis=1)
+        data = data.mean(axis = 1)
     return data, samplerate
+def save_audio(path,samplerate,data):
+    Path(path).parent.mkdir(parents = True, exist_ok= True)
+    sf.write(path,samplerate,data)
+    
+        
+    
+    
 
 
-def save_audio(path, data, samplerate):
-    save_path = Path(path)
-    save_path.parent.mkdir(parents=True, exist_ok=True)
-    sf.write(save_path, data, samplerate)

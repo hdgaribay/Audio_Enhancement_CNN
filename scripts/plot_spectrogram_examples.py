@@ -1,7 +1,7 @@
 """
 scripts/plot_spectrogram_examples.py
 
-Generate paper-ready noisy, clean, and enhanced spectrogram examples from a
+Generate noisy, clean, and enhanced spectrogram examples from a
 trained CNNDenoiser checkpoint. By default this uses the best validation
 checkpoint and saves both PDF and PNG figures for easy Overleaf embedding.
 
